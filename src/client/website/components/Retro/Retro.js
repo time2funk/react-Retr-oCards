@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { DragDropContext } from 'react-beautiful-dnd';
+
 import {
   Avatar,
   Button,
@@ -38,7 +40,15 @@ class Retro extends Component {
       this.joinRetro();
     }
   }
-
+  onDragEnd = (result) => {
+    console.log(result);
+  };
+  onDragStart = (result) => {
+    console.log(result);
+  };
+  onDragUpdate = (result) => {
+    console.log(result);
+  }
   joinRetro = () => {
     const { joinRetro, match: { params: { retroShareId } } } = this.props;
     const { socket } = this.context;
@@ -59,48 +69,62 @@ class Retro extends Component {
     switch (joinStatus) {
       case QUERY_STATUS_SUCCESS:
         return (
-          <div className={classes.root}>
-            <Steps />
-            <div className={classes.columns}>
-              {columns.map(column => (
-                <Column key={column.id} column={column} />
-              ))}
+          <DragDropContext
+            onDragStart={this.onDragStart}
+            onDragUpdate={this.onDragUpdate}
+            onDragEnd={this.onDragEnd}
+          >
+            <div className={classes.root}>
+              <Steps />
+              <div className={classes.columns}>
+                {columns.map(column => (
+                  <Column key={column.id} column={column} />
+                ))}
+              </div>
+              <div className={classes.users}>
+                {Object.values(users).map(({ id, name }) => (
+                  <Tooltip key={id} title={name} placement="left">
+                    <Avatar
+                      alt={name}
+                      className={classes.avatar}
+                    >
+                      {initialsOf(name)}
+                    </Avatar>
+                  </Tooltip>
+                ))}
+              </div>
             </div>
-            <div className={classes.users}>
-              {Object.values(users).map(({ id, name }) => (
-                <Tooltip key={id} title={name} placement="left">
-                  <Avatar
-                    alt={name}
-                    className={classes.avatar}
-                  >
-                    {initialsOf(name)}
-                  </Avatar>
-                </Tooltip>
-              ))}
-            </div>
-          </div>
+          </DragDropContext>
         );
       case QUERY_STATUS_FAILURE:
         return (
-          <div className={classes.root}>
-            <Card className={classes.messageCard}>
-              <Typography type="headline">Error</Typography>
-              <CardContent>
-                <Typography>{joinError}</Typography>
-              </CardContent>
-              <CardActions>
-                <Button onClick={() => history.goBack()}>Back</Button>
-              </CardActions>
-            </Card>
-          </div>
+          <DragDropContext
+            onDragEnd={this.onDragEnd}
+          >
+            <div className={classes.root}>
+              <Card className={classes.messageCard}>
+                <Typography type="headline">Error</Typography>
+                <CardContent>
+                  <Typography>{joinError}</Typography>
+                </CardContent>
+                <CardActions>
+                  <Button onClick={() => history.goBack()}>Back</Button>
+                </CardActions>
+              </Card>
+            </div>
+          </DragDropContext>
         );
       default:
         return (
-          <div className={classes.root}>
-            <Card className={classes.messageCard}>
-              <CircularProgress color="primary" />
-            </Card>
-          </div>
+          <DragDropContext
+            onDragEnd={this.onDragEnd}
+          >
+            <div className={classes.root}>
+              <Card className={classes.messageCard}>
+                <CircularProgress color="primary" />
+              </Card>
+            </div>
+          </DragDropContext>
         );
     }
   }

@@ -2,6 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { IconButton, Typography } from 'material-ui';
 import PlaylistAdd from 'material-ui-icons/PlaylistAdd';
+
+import { Droppable, Draggable } from 'react-beautiful-dnd';
+
 import Card from '../../containers/Retro/Card';
 import { QUERY_ERROR_KEY, queryFailed, QueryShape } from '../../services/websocket/query';
 
@@ -48,9 +51,47 @@ class Column extends Component {
             <PlaylistAdd className={classes.actionIcon} />
           </IconButton>
         </div>
-        {cards.filter(card => column.id === card.columnId).map(card => (
-          <Card card={card} key={card.id} />
-        ))}
+
+        <Droppable droppableId={column.id}>
+          {topProvided => (
+            <div
+              ref={topProvided.innerRef}
+              {...topProvided.droppableProps}
+            >
+
+              {cards.filter(card => column.id === card.columnId).map((card, index) => (
+
+                <Draggable
+                  draggableId={card.id}
+                  index={index}
+                  key={card.id}
+                >
+                  {provided => (
+                    <div>
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                      >
+
+                        <Card
+                          card={card}
+                          key={card.id}
+                        />
+
+                      </div>
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Draggable>
+
+              ))}
+
+              {topProvided.placeholder}
+            </div>
+          )}
+        </Droppable>
+
       </div>
     );
   }
