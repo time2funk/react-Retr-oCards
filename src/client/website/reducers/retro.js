@@ -33,7 +33,10 @@ import {
   CARD_EDIT_SUCCESS,
   CARD_REMOVE_FAILURE,
   CARD_REMOVE_IN_PROGRESS,
-  CARD_REMOVE_SUCCESS
+  CARD_REMOVE_SUCCESS,
+  CARD_MOVE_FAILURE,
+  CARD_MOVE_IN_PROGRESS,
+  CARD_MOVE_SUCCESS
 } from '../actions/card';
 import {
   STEPS_CHANGE_IN_PROGRESS,
@@ -64,6 +67,7 @@ export const COLUMN_REMOVE_QUERY_KEY = 'removeColumn';
 export const COLUMN_EDIT_QUERY_KEY = 'editColumn';
 export const CARD_ADD_QUERY_KEY = 'addCard';
 export const CARD_REMOVE_QUERY_KEY = 'removeCard';
+export const CARD_MOVE_QUERY_KEY = 'moveCard';
 export const CARD_EDIT_QUERY_KEY = 'editCard';
 export const CARD_VOTES_KEY = 'votes';
 export const STEPS_CHANGE_QUERY_KEY = 'stepChange';
@@ -88,6 +92,7 @@ const initialState = {
   [COLUMN_EDIT_QUERY_KEY]: QUERY_DEFAULT(),
   [CARD_ADD_QUERY_KEY]: QUERY_DEFAULT(),
   [CARD_REMOVE_QUERY_KEY]: QUERY_DEFAULT(),
+  [CARD_MOVE_QUERY_KEY]: QUERY_DEFAULT(),
   [CARD_EDIT_QUERY_KEY]: QUERY_DEFAULT(),
   [STEPS_CHANGE_QUERY_KEY]: QUERY_DEFAULT()
 };
@@ -241,6 +246,24 @@ const ACTION_HANDLERS = {
     },
     CARD_REMOVE_FAILURE
   ], CARD_REMOVE_QUERY_KEY),
+  ...handleQuery([
+    CARD_MOVE_IN_PROGRESS,
+    {
+      [CARD_MOVE_SUCCESS](state, payload) {
+        const newState = deepClone(state);
+        const { columnId, cardId } = payload;
+
+        const cardIndex = newState[RETRO_CARDS_KEY].findIndex(card => card.id === cardId);
+
+        if (cardIndex !== -1) {
+          newState[RETRO_CARDS_KEY][cardIndex].columnId = columnId;
+        }
+
+        return newState;
+      }
+    },
+    CARD_MOVE_FAILURE
+  ], CARD_MOVE_QUERY_KEY),
   ...handleQuery([
     CARD_EDIT_IN_PROGRESS,
     {

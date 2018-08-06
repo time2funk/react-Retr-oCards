@@ -31,24 +31,52 @@ class Retro extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const { addColumnQuery, connectQuery, addMessage } = this.props;
-    const { addColumnQuery: nextAddColumnQuery, connectQuery: nextConnectQuery } = nextProps;
+    const { addColumnQuery, connectQuery, addMessage, moveCardQuery } = this.props;
+    const {
+      addColumnQuery: nextAddColumnQuery,
+      connectQuery: nextConnectQuery,
+      moveCardQuery: nextMoveCardQuery
+    } = nextProps;
     if (queryFailed(addColumnQuery, nextAddColumnQuery)) {
       addMessage(nextAddColumnQuery[QUERY_ERROR_KEY]);
+    }
+    if (queryFailed(moveCardQuery, nextMoveCardQuery)) {
+      addMessage(nextMoveCardQuery[QUERY_ERROR_KEY]);
     }
     if (querySucceeded(connectQuery, nextConnectQuery)) {
       this.joinRetro();
     }
   }
+
+
   onDragEnd = (result) => {
-    console.log(result);
+    const { source, destination, draggableId } = result;
+
+    // dropped outside the list
+    if (!destination) {
+      return;
+    }
+    if (source.droppableId !== destination.droppableId) {
+      const { socket } = this.context;
+      const { moveCard } = this.props;
+      const columnId = destination.droppableId;
+      const cardId = draggableId;
+
+      // just to hide the blink before action query done
+      const cards = Array.from(this.props.cards);
+      const cardIndex = cards.findIndex(card => card.id === cardId);
+      cards[cardIndex].columnId = columnId;
+      this.setProps = {
+        ...cards
+      };
+      // do the action query
+      moveCard(socket, columnId, cardId);
+    }
   };
-  onDragStart = (result) => {
-    console.log(result);
-  };
-  onDragUpdate = (result) => {
-    console.log(result);
-  }
+
+  onDragStart = () => {};
+  onDragUpdate = () => {}
+
   joinRetro = () => {
     const { joinRetro, match: { params: { retroShareId } } } = this.props;
     const { socket } = this.context;
@@ -146,12 +174,19 @@ Retro.propTypes = {
     name: PropTypes.string.isRequired,
     icon: PropTypes.string.isRequired
   })).isRequired,
+  cards: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    columnId: PropTypes.string.isRequired,
+    text: PropTypes.string.isRequired
+  })).isRequired,
   users: PropTypes.object.isRequired,
   // Queries
   connectQuery: PropTypes.shape(QueryShape).isRequired,
   joinRetroQuery: PropTypes.shape(QueryShape).isRequired,
   addColumnQuery: PropTypes.shape(QueryShape).isRequired,
+  moveCardQuery: PropTypes.shape(QueryShape).isRequired,
   // Functions
+  moveCard: PropTypes.func.isRequired,
   joinRetro: PropTypes.func.isRequired,
   addMessage: PropTypes.func.isRequired,
   // Styles

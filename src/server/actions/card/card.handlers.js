@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import Retro from '../../models/retro.model';
 import User from '../../models/user.model';
-import { ACTION_CARD_ADD, ACTION_CARD_EDIT, ACTION_CARD_REMOVE } from './card.actions';
+import { ACTION_CARD_ADD, ACTION_CARD_EDIT, ACTION_CARD_REMOVE, ACTION_CARD_MOVE } from './card.actions';
 import { getId, getIds } from '../../utils';
 
 export default {
@@ -103,6 +103,37 @@ export default {
     return {
       broadcast: {
         id
+      }
+    };
+  },
+  [ACTION_CARD_MOVE]: async (params, state) => {
+    const { retroId, userId } = state;
+    const { columnId, cardId } = params;
+    const retro = await Retro.findById(retroId);
+    if (!retro.participates(userId)) {
+      throw new Error('You are not participating in a retrospective.');
+    }
+
+    const column = retro.columns.find(c => getId(c) === columnId);
+    if (!column) throw new Error('Column incorrect or not selected.');
+
+    const updated = await Retro.findOneAndUpdate({
+      _id: retroId,
+      cards: { $elemMatch: { _id: cardId, authors: userId } }
+    }, {
+      $set: { 
+        'cards.$.columnId' : columnId
+      }
+    }).exec();
+
+    if (!updated) {
+      throw new Error('Card not moved because it doesn\'t exist or you don\'t have sufficient privileges.');
+    }
+
+    return {
+      broadcast: {
+        columnId,
+        cardId
       }
     };
   }

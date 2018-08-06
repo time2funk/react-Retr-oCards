@@ -13,6 +13,11 @@ export const CARD_REMOVE_IN_PROGRESS = 'CARD_REMOVE_IN_PROGRESS';
 export const CARD_REMOVE_SUCCESS = 'CARD_REMOVE_SUCCESS';
 export const CARD_REMOVE_FAILURE = 'CARD_REMOVE_FAILURE';
 
+export const ACTION_CARD_MOVE = 'card/move';
+export const CARD_MOVE_IN_PROGRESS = 'CARD_MOVE_IN_PROGRESS';
+export const CARD_MOVE_SUCCESS = 'CARD_MOVE_SUCCESS';
+export const CARD_MOVE_FAILURE = 'CARD_MOVE_FAILURE';
+
 export const cardAdd = (socket, columnId, text) => (dispatch) => {
   socket.emit(ACTION_CARD_ADD, { columnId, text });
   dispatch({ type: CARD_ADD_IN_PROGRESS });
@@ -26,4 +31,9 @@ export const cardRemove = (socket, cardId) => (dispatch) => {
 export const cardEdit = (socket, card) => (dispatch) => {
   socket.emit(ACTION_CARD_EDIT, card);
   dispatch({ type: CARD_EDIT_IN_PROGRESS });
+};
+
+export const cardMove = (socket, columnId, cardId) => (dispatch) => {
+  socket.emit(ACTION_CARD_MOVE, { columnId, cardId });
+  dispatch({ type: CARD_MOVE_IN_PROGRESS });
 };
