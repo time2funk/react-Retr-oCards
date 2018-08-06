@@ -5,7 +5,9 @@ import styles from './../../components/Retro/Retro.styles';
 import Retro from '../../components/Retro';
 import { retroJoin, setRetroIdQueryParameter } from '../../actions/retro';
 import { columnAdd, columnRemove } from '../../actions/column';
+import { cardMove } from '../../actions/card';
 import {
+  CARD_MOVE_QUERY_KEY,
   COLUMN_ADD_QUERY_KEY,
   COLUMN_REMOVE_QUERY_KEY,
   RETRO_CARDS_KEY,
@@ -21,6 +23,7 @@ import { addMessage } from '../../actions/layout';
 import { USER_CONNECT_QUERY_KEY, USER_ID_KEY } from '../../reducers/user';
 
 const mapStateToProps = ({ retro, user }) => ({
+  moveCardQuery: retro[CARD_MOVE_QUERY_KEY],
   name: retro[RETRO_NAME_KEY],
   shareId: retro[RETRO_SHARE_ID_KEY],
   columns: retro[RETRO_COLUMNS_KEY],
@@ -37,6 +40,7 @@ const mapStateToProps = ({ retro, user }) => ({
 });
 
 const mapDispatchToProps = dispatch => ({
+  moveCard: (socket, columnId, cardId) => dispatch(cardMove(socket, columnId, cardId)),
   joinRetro: (socket, shareId) => dispatch(retroJoin(socket, shareId)),
   addColumn: (socket, name, icon) => dispatch(columnAdd(socket, name, icon)),
   removeColumn: (socket, id) => dispatch(columnRemove(socket, id)),
