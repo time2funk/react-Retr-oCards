@@ -1,9 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { IconButton, Typography } from 'material-ui';
-import PlaylistAdd from 'material-ui-icons/PlaylistAdd';
-import Sort from 'material-ui-icons/Sort';
-
+import { PlaylistAdd, Sort, ExpandMore } from 'material-ui-icons';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 
 import Card from '../../containers/Retro/Card';
@@ -12,7 +10,7 @@ import { QUERY_ERROR_KEY, queryFailed, QueryShape } from '../../services/websock
 class Column extends Component {
   constructor(props) {
     super(props);
-    this.state = { text: '', curCards: [], abc: true };
+    this.state = { text: '', curCards: [], abc: true, hide: false };
   }
 
   componentWillReceiveProps(nextProps) {
@@ -37,6 +35,7 @@ class Column extends Component {
     addCard(socket, id, text);
     this.setState({ text: '' });
   };
+
   sortCards = () => {
     const { cards } = this.props;
     const { column } = this.props;
@@ -50,6 +49,23 @@ class Column extends Component {
       abc: !this.state.abc
     });
   };
+
+  hideCards = () => {
+    if (!this.state.hide) {
+      this.setState({
+        curCards: [],
+        hide: true
+      });
+    } else {
+      const { cards } = this.props;
+      const { column } = this.props;
+      this.setState({
+        curCards: cards.filter(card => column.id === card.columnId),
+        hide: false,
+        abc: true
+      });
+    }
+  }
 
   handleTextChange = (e) => {
     this.setState({ text: e.target.value });
@@ -67,6 +83,9 @@ class Column extends Component {
           >{column.name}
           </Typography>
           <div>
+            <IconButton className={classes.addCardIcon} onClick={this.hideCards}>
+              <ExpandMore className={classes.actionIcon} />
+            </IconButton>
             <IconButton className={classes.addCardIcon} onClick={this.addCard}>
               <PlaylistAdd className={classes.actionIcon} />
             </IconButton>
