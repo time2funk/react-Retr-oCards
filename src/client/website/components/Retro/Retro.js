@@ -15,8 +15,9 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  Slide
+  TextField
 } from 'material-ui';
+import { withStyles } from 'material-ui/styles';
 import { CircularProgress } from 'material-ui/Progress';
 import {
   QUERY_ERROR_KEY,
@@ -28,12 +29,22 @@ import {
   querySucceeded
 } from '../../services/websocket/query';
 import Column from '../../containers/Retro/Column';
+import CardComponent from '../../containers/Retro/Card';
 import Steps from '../../containers/Retro/Steps';
 import { initialsOf } from '../../services/utils/initials';
 
-function Transition(props) {
-  return <Slide direction="up" {...props} />;
-}
+const styles = theme => ({
+  container: {
+    display: 'flex',
+    flexWrap: 'wrap'
+  },
+  textField: {
+    marginLeft: theme.spacing.unit,
+    marginRight: theme.spacing.unit,
+    width: 200
+  }
+});
+
 
 class Retro extends Component {
   constructor(props) {
@@ -44,10 +55,12 @@ class Retro extends Component {
       hoveredCardId: '',
       dialogOpenStatus: false,
       dialogTitle: '',
-      dialogText: ''
+      dialogText: '',
+      searchValue: ''
     };
     this.cardEnterEventHandler = this.cardEnterEventHandler.bind(this);
     this.cardLeaveEventHandler = this.cardLeaveEventHandler.bind(this);
+    this.onChangeSearchInput = this.onChangeSearchInput.bind(this);
   }
   componentWillMount() {
     this.joinRetro();
@@ -162,6 +175,13 @@ class Retro extends Component {
     }
   };
 
+  // Search Event
+  onChangeSearchInput = (event) => {
+    this.setState({
+      searchValue: event.target.value
+    });
+  }
+
   // Hover Cards Action
   cardEnterEventHandler = (cardId) => {
     this.setState({
@@ -220,6 +240,7 @@ class Retro extends Component {
         [QUERY_ERROR_KEY]: joinError
       }
     } = this.props;
+
     switch (joinStatus) {
       case QUERY_STATUS_SUCCESS:
         return (
@@ -230,56 +251,88 @@ class Retro extends Component {
           >
             <div className={classes.root}>
               <Steps />
-              <div className={classes.columns}>
-                {columns.map(column => (
-                  <Column
-                    key={column.id}
-                    column={column}
-                    hoveredColumn={this.state.hoveredColumn}
-                    columnCardCombine={this.state.columnCardCombine}
-                    cardEnterEvent={this.cardEnterEventHandler}
-                    cardLeaveEvent={this.cardLeaveEventHandler}
+              <div className="search-container">
+                <div>
+                  <TextField
+                    defaultValue={this.state.searchValue}
+                    onChange={this.onChangeSearchInput}
+                    id="search"
+                    label="Search field"
+                    type="search"
+                    className="search-textField"
+                    margin="normal"
                   />
-                ))}
-              </div>
-              <div className={classes.users}>
-                {Object.values(users).map(({ id, name }) => (
-                  <Tooltip key={id} title={name} placement="left">
-                    <Avatar
-                      alt={name}
-                      className={classes.avatar}
-                    >
-                      {initialsOf(name)}
-                    </Avatar>
-                  </Tooltip>
-                ))}
+                </div>
               </div>
 
-              <Dialog
-                open={this.state.dialogOpenStatus}
-                TransitionComponent={Transition}
-                keepMounted
-                onClose={this.dialogClose}
-                aria-labelledby="alert-dialog-slide-title"
-                aria-describedby="alert-dialog-slide-description"
-              >
-                <DialogTitle id="alert-dialog-slide-title">
-                  {this.state.dialogTitle}
-                </DialogTitle>
-                <DialogContent>
-                  <DialogContentText id="alert-dialog-slide-description">
-                    {this.state.dialogText}
-                  </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                  <Button onClick={this.dialogClose} color="primary">
-                    Disagree
-                  </Button>
-                  <Button onClick={this.dialogAgreeAction} color="primary">
-                    Agree
-                  </Button>
-                </DialogActions>
-              </Dialog>
+              {(this.state.searchValue.length !== 0) &&
+                <div className={classes.root}>
+                  <Card className={classes.messageCard}>
+                    {this.props.cards.filter((c) => {
+                      const regex = new RegExp(this.state.searchValue, 'i');
+                      return c.text.match(regex);
+                    }).map(card => (
+                      <CardComponent
+                        card={card}
+                        key={card.id}
+                      />
+                    ))}
+                  </Card>
+                </div>
+              }
+              {(this.state.searchValue.length === 0) &&
+                <div>
+                  <div className={classes.columns}>
+                    {columns.map(column => (
+                      <Column
+                        key={column.id}
+                        column={column}
+                        hoveredColumn={this.state.hoveredColumn}
+                        columnCardCombine={this.state.columnCardCombine}
+                        cardEnterEvent={this.cardEnterEventHandler}
+                        cardLeaveEvent={this.cardLeaveEventHandler}
+                      />
+                    ))}
+                  </div>
+                  <div className={classes.users}>
+                    {Object.values(users).map(({ id, name }) => (
+                      <Tooltip key={id} title={name} placement="left">
+                        <Avatar
+                          alt={name}
+                          className={classes.avatar}
+                        >
+                          {initialsOf(name)}
+                        </Avatar>
+                      </Tooltip>
+                    ))}
+                  </div>
+
+                  <Dialog
+                    open={this.state.dialogOpenStatus}
+                    keepMounted
+                    onClose={this.dialogClose}
+                    aria-labelledby="alert-dialog-slide-title"
+                    aria-describedby="alert-dialog-slide-description"
+                  >
+                    <DialogTitle id="alert-dialog-slide-title">
+                      {this.state.dialogTitle}
+                    </DialogTitle>
+                    <DialogContent>
+                      <DialogContentText id="alert-dialog-slide-description">
+                        {this.state.dialogText}
+                      </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button onClick={this.dialogClose} color="primary">
+                        Disagree
+                      </Button>
+                      <Button onClick={this.dialogAgreeAction} color="primary">
+                        Agree
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
+                </div>
+              }
 
             </div>
           </DragDropContext>
@@ -314,7 +367,7 @@ class Retro extends Component {
             </div>
           </DragDropContext>
         );
-    }
+    } // switch
   }
 }
 
@@ -367,4 +420,5 @@ Retro.propTypes = {
 // Retro.defaultProps = {
 //   groups: []
 // };
-export default Retro;
+// export default Retro;
+export default withStyles(styles)(Retro);
