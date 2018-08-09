@@ -9,7 +9,13 @@ import {
   CardActions,
   CardContent,
   Tooltip,
-  Typography
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  Slide
 } from 'material-ui';
 import { CircularProgress } from 'material-ui/Progress';
 import {
@@ -25,17 +31,41 @@ import Column from '../../containers/Retro/Column';
 import Steps from '../../containers/Retro/Steps';
 import { initialsOf } from '../../services/utils/initials';
 
+function Transition(props) {
+  return <Slide direction="up" {...props} />;
+}
+
 class Retro extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      hoveredColumn: '',
+      columnCardCombine: '',
+      hoveredCardId: '',
+      dialogOpenStatus: false,
+      dialogTitle: '',
+      dialogText: ''
+    };
+    this.cardEnterEventHandler = this.cardEnterEventHandler.bind(this);
+    this.cardLeaveEventHandler = this.cardLeaveEventHandler.bind(this);
+  }
   componentWillMount() {
     this.joinRetro();
   }
 
   componentWillReceiveProps(nextProps) {
-    const { addColumnQuery, connectQuery, addMessage, moveCardQuery } = this.props;
+    const {
+      addColumnQuery,
+      connectQuery,
+      addMessage,
+      moveCardQuery,
+      groupCardsQuery
+    } = this.props;
     const {
       addColumnQuery: nextAddColumnQuery,
       connectQuery: nextConnectQuery,
-      moveCardQuery: nextMoveCardQuery
+      moveCardQuery: nextMoveCardQuery,
+      groupCardsQuery: nextGroupCardsQuery
     } = nextProps;
     if (queryFailed(addColumnQuery, nextAddColumnQuery)) {
       addMessage(nextAddColumnQuery[QUERY_ERROR_KEY]);
@@ -43,39 +73,135 @@ class Retro extends Component {
     if (queryFailed(moveCardQuery, nextMoveCardQuery)) {
       addMessage(nextMoveCardQuery[QUERY_ERROR_KEY]);
     }
+    if (queryFailed(groupCardsQuery, nextGroupCardsQuery)) {
+      addMessage(nextGroupCardsQuery[QUERY_ERROR_KEY]);
+    }
     if (querySucceeded(connectQuery, nextConnectQuery)) {
       this.joinRetro();
     }
   }
 
+  // Drag Card Action Part
+  onDragStart = (start) => {
+    const { source } = start;
 
+    this.setState({
+      hoveredColumn: '',
+      columnCardCombine: source.droppableId
+    });
+  };
+  onDragUpdate = (update) => {
+    const { destination, source } = update;
+
+    if (!destination) {
+      this.setState({
+        hoveredColumn: '',
+        columnCardCombine: ''
+      });
+    } else if (source.droppableId !== destination.droppableId) {
+      this.setState({
+        hoveredColumn: destination.droppableId,
+        columnCardCombine: ''
+      });
+    } else if (source.droppableId === destination.droppableId) {
+      this.setState({
+        hoveredColumn: '',
+        columnCardCombine: source.droppableId
+      });
+    }
+  }
   onDragEnd = (result) => {
     const { source, destination, draggableId } = result;
 
+    this.setState({
+      columnCardCombine: '',
+      hoveredColumn: ''
+    });
     // dropped outside the list
     if (!destination) {
       return;
     }
     if (source.droppableId !== destination.droppableId) {
-      const { socket } = this.context;
-      const { moveCard } = this.props;
-      const columnId = destination.droppableId;
-      const cardId = draggableId;
-
-      // just to hide the blink before action query done
-      const cards = Array.from(this.props.cards);
-      const cardIndex = cards.findIndex(card => card.id === cardId);
-      cards[cardIndex].columnId = columnId;
-      this.setProps = {
-        ...cards
-      };
-      // do the action query
-      moveCard(socket, columnId, cardId);
+      const title = 'Do you want to move this Card to other Column?';
+      const text = 'The Card will be edited and asigned to the other Column.';
+      this.dialogOpenHandler(title, text, () => {
+        const { socket } = this.context;
+        const { moveCard } = this.props;
+        const columnId = destination.droppableId;
+        const cardId = draggableId;
+        const cards = Array.from(this.props.cards);
+        // just to hide the blink before action query done
+        const cardIndex = cards.findIndex(card => card.id === cardId);
+        cards[cardIndex].columnId = columnId;
+        this.setProps = {
+          ...cards
+        };
+        // do the action query
+        moveCard(socket, columnId, cardId);
+      });
+    } else {
+      const { hoveredCardId } = this.state;
+      // The Card was dragged in to other Card in one Column
+      console.log('------------------------');
+      console.log({ draggableId, hoveredCardId });
+      if (draggableId !== hoveredCardId) {
+        const title = 'Do you want to group this Cards?';
+        const text = 'The Cards will be grouped and the Votes will be summarized.';
+        this.dialogOpenHandler(title, text, () => {
+          const { socket } = this.context;
+          const { groupCards } = this.props;
+          groupCards(socket, {
+            id: draggableId,
+            type: 'card'
+          }, {
+            id: hoveredCardId,
+            type: 'card'
+          });
+        });
+      }
     }
   };
 
-  onDragStart = () => {};
-  onDragUpdate = () => {}
+  // Hover Cards Action
+  cardEnterEventHandler = (cardId) => {
+    this.setState({
+      hoveredCardId: cardId
+    });
+  }
+  cardLeaveEventHandler = () => {
+    this.setState({
+      hoveredCardId: ''
+    });
+  }
+
+  // Dialog Handler
+  dialogOpenHandler = (title, text, callback) => {
+    if (title && text) {
+      this.setState({
+        dialogOpenStatus: true,
+        dialogTitle: title,
+        dialogText: text
+      });
+      if (callback) this.dCallback = callback;
+    } else {
+      this.setState({ dialogOpenStatus: true });
+    }
+  };
+  dialogClose = () => {
+    this.setState({
+      dialogOpenStatus: false,
+      dialogTitle: '',
+      dialogText: ''
+    });
+  };
+  dialogAgreeAction = () => {
+    this.setState({
+      dialogOpenStatus: false,
+      dialogTitle: '',
+      dialogText: ''
+    });
+    if (this.dCallback) this.dCallback();
+  }
 
   joinRetro = () => {
     const { joinRetro, match: { params: { retroShareId } } } = this.props;
@@ -106,7 +232,14 @@ class Retro extends Component {
               <Steps />
               <div className={classes.columns}>
                 {columns.map(column => (
-                  <Column key={column.id} column={column} />
+                  <Column
+                    key={column.id}
+                    column={column}
+                    hoveredColumn={this.state.hoveredColumn}
+                    columnCardCombine={this.state.columnCardCombine}
+                    cardEnterEvent={this.cardEnterEventHandler}
+                    cardLeaveEvent={this.cardLeaveEventHandler}
+                  />
                 ))}
               </div>
               <div className={classes.users}>
@@ -121,6 +254,33 @@ class Retro extends Component {
                   </Tooltip>
                 ))}
               </div>
+
+              <Dialog
+                open={this.state.dialogOpenStatus}
+                TransitionComponent={Transition}
+                keepMounted
+                onClose={this.dialogClose}
+                aria-labelledby="alert-dialog-slide-title"
+                aria-describedby="alert-dialog-slide-description"
+              >
+                <DialogTitle id="alert-dialog-slide-title">
+                  {this.state.dialogTitle}
+                </DialogTitle>
+                <DialogContent>
+                  <DialogContentText id="alert-dialog-slide-description">
+                    {this.state.dialogText}
+                  </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={this.dialogClose} color="primary">
+                    Disagree
+                  </Button>
+                  <Button onClick={this.dialogAgreeAction} color="primary">
+                    Agree
+                  </Button>
+                </DialogActions>
+              </Dialog>
+
             </div>
           </DragDropContext>
         );
@@ -172,7 +332,8 @@ Retro.propTypes = {
   }).isRequired,
   columns: PropTypes.arrayOf(PropTypes.shape({
     name: PropTypes.string.isRequired,
-    icon: PropTypes.string.isRequired
+    icon: PropTypes.string.isRequired,
+    isHovered: PropTypes.bool
   })).isRequired,
   cards: PropTypes.arrayOf(PropTypes.shape({
     id: PropTypes.string.isRequired,
@@ -180,13 +341,16 @@ Retro.propTypes = {
     text: PropTypes.string.isRequired
   })).isRequired,
   users: PropTypes.object.isRequired,
+  // hoveredCardId: PropTypes.string,
   // Queries
   connectQuery: PropTypes.shape(QueryShape).isRequired,
   joinRetroQuery: PropTypes.shape(QueryShape).isRequired,
   addColumnQuery: PropTypes.shape(QueryShape).isRequired,
   moveCardQuery: PropTypes.shape(QueryShape).isRequired,
+  groupCardsQuery: PropTypes.shape(QueryShape).isRequired,
   // Functions
   moveCard: PropTypes.func.isRequired,
+  groupCards: PropTypes.func.isRequired,
   joinRetro: PropTypes.func.isRequired,
   addMessage: PropTypes.func.isRequired,
   // Styles
@@ -200,4 +364,7 @@ Retro.propTypes = {
   }).isRequired
 };
 
+// Retro.defaultProps = {
+//   groups: []
+// };
 export default Retro;

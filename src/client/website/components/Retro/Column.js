@@ -3,23 +3,34 @@ import PropTypes from 'prop-types';
 import { IconButton, Typography } from 'material-ui';
 import { PlaylistAdd, Sort, ExpandMore } from 'material-ui-icons';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
-
 import Card from '../../containers/Retro/Card';
 import { QUERY_ERROR_KEY, queryFailed, QueryShape } from '../../services/websocket/query';
+import { good } from '../../theme/colors';
 
 class Column extends Component {
   constructor(props) {
     super(props);
-    this.state = { text: '', curCards: [], abc: true, hide: false };
+    this.state = {
+      text: '',
+      curCards: [],
+      abc: true,
+      hide: false
+    };
   }
 
+  componentWillMount() {
+    this.setCards();
+  }
   componentWillReceiveProps(nextProps) {
+    this.setCards();
+
     const { addCardQuery, addMessage } = this.props;
     const { addCardQuery: nextAddCardQuery } = nextProps;
     if (queryFailed(addCardQuery, nextAddCardQuery)) {
       addMessage(nextAddCardQuery[QUERY_ERROR_KEY]);
     }
-
+  }
+  setCards = () => {
     const { cards } = this.props;
     const { column } = this.props;
     this.setState({
@@ -30,10 +41,14 @@ class Column extends Component {
   addCard = () => {
     const { socket } = this.context;
     const { text } = this.state;
-    const { column: { id }, addCard } = this.props;
+    const { column, cards, addCard } = this.props;
 
-    addCard(socket, id, text);
-    this.setState({ text: '' });
+    addCard(socket, column.id, text);
+    this.setState({
+      text: '',
+      hide: false,
+      curCards: cards.filter(card => column.id === card.columnId)
+    });
   };
 
   sortCards = () => {
@@ -67,14 +82,32 @@ class Column extends Component {
     }
   }
 
+
   handleTextChange = (e) => {
     this.setState({ text: e.target.value });
   };
 
   render() {
-    const { column, classes } = this.props;
+    const {
+      column,
+      classes,
+      hoveredColumn,
+      columnCardCombine,
+      cardEnterEvent,
+      cardLeaveEvent
+    } = this.props;
     return (
-      <div className={classes.column}>
+      <div
+        className={
+          columnCardCombine === column.id
+            ? `${classes.column} p-Column-Card-Combine`
+            : classes.column
+        }
+        style={{ borderColor: (hoveredColumn && column.id === hoveredColumn)
+          ? good
+          : '#ccc'
+        }}
+      >
         <div className={classes.header}>
           <Typography
             type="headline"
@@ -109,14 +142,17 @@ class Column extends Component {
                   index={index}
                   key={card.id}
                 >
-                  {provided => (
+                  {(provided, snapshot) => (
                     <div
                       className="p-DraggableItem"
                     >
                       <div
+                        className={snapshot.isDragging ? 'p-DraggingItem' : ''}
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
+                        onMouseEnter={() => cardEnterEvent(card.id)}
+                        onMouseLeave={() => cardLeaveEvent}
                       >
 
                         <Card
@@ -132,7 +168,6 @@ class Column extends Component {
 
               ))}
 
-              {topProvided.placeholder}
             </div>
           )}
         </Droppable>
@@ -157,9 +192,17 @@ Column.propTypes = {
     columnId: PropTypes.string.isRequired,
     text: PropTypes.string.isRequired
   })).isRequired,
+  groups: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    cards: PropTypes.arrayOf(PropTypes.string.isRequired)
+  })).isRequired,
+  hoveredColumn: PropTypes.string,
+  columnCardCombine: PropTypes.string,
   // Functions
   addCard: PropTypes.func.isRequired,
   addMessage: PropTypes.func.isRequired,
+  cardEnterEvent: PropTypes.func.isRequired,
+  cardLeaveEvent: PropTypes.func.isRequired,
   // Queries
   addCardQuery: PropTypes.shape(QueryShape).isRequired,
   // Styles
@@ -171,4 +214,8 @@ Column.propTypes = {
   }).isRequired
 };
 
+Column.defaultProps = {
+  hoveredColumn: '',
+  columnCardCombine: ''
+};
 export default Column;

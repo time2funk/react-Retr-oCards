@@ -7,13 +7,15 @@ import { columnEdit } from '../../actions/column';
 import {
   CARD_ADD_QUERY_KEY,
   COLUMN_EDIT_QUERY_KEY,
-  RETRO_CARDS_KEY
+  RETRO_CARDS_KEY,
+  RETRO_GROUPS_KEY
 } from '../../reducers/retro';
 import { cardAdd } from '../../actions/card';
 import { addMessage } from '../../actions/layout';
 
 const mapStateToProps = ({ retro }) => ({
   cards: retro[RETRO_CARDS_KEY],
+  groups: retro[RETRO_GROUPS_KEY],
   editColumnQuery: retro[COLUMN_EDIT_QUERY_KEY],
   addCardQuery: retro[CARD_ADD_QUERY_KEY]
 });

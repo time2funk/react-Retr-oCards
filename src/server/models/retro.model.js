@@ -39,6 +39,15 @@ const cardSchema = new mongoose.Schema({
 cardSchema.set('toJSON', conversionOptions);
 cardSchema.set('toObject', conversionOptions);
 
+const groupSchema = new mongoose.Schema({
+  cards: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Card'
+  }]
+});
+groupSchema.set('toJSON', conversionOptions);
+groupSchema.set('toObject', conversionOptions);
+
 const retroSchema = new mongoose.Schema({
   created: {
     type: Date,
@@ -62,6 +71,7 @@ const retroSchema = new mongoose.Schema({
     },
     votes: Number
   }],
+  groups: [groupSchema],
   scrumMaster: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
