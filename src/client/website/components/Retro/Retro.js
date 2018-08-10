@@ -17,7 +17,6 @@ import {
   DialogContentText,
   TextField
 } from 'material-ui';
-import { withStyles } from 'material-ui/styles';
 import { CircularProgress } from 'material-ui/Progress';
 import {
   QUERY_ERROR_KEY,
@@ -32,18 +31,6 @@ import Column from '../../containers/Retro/Column';
 import CardComponent from '../../containers/Retro/Card';
 import Steps from '../../containers/Retro/Steps';
 import { initialsOf } from '../../services/utils/initials';
-
-const styles = theme => ({
-  container: {
-    display: 'flex',
-    flexWrap: 'wrap'
-  },
-  textField: {
-    marginLeft: theme.spacing.unit,
-    marginRight: theme.spacing.unit,
-    width: 200
-  }
-});
 
 
 class Retro extends Component {
@@ -420,5 +407,4 @@ Retro.propTypes = {
 // Retro.defaultProps = {
 //   groups: []
 // };
-// export default Retro;
-export default withStyles(styles)(Retro);
+export default Retro;

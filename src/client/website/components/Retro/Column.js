@@ -19,20 +19,24 @@ class Column extends Component {
   }
 
   componentWillMount() {
-    this.setCards();
+    console.log('componentWillMount');
+    this.setCards(this.props);
   }
   componentWillReceiveProps(nextProps) {
-    this.setCards();
-
+    console.log('componentWillReceiveProps');
+    console.log(this.props);
+    console.log('nextProps');
+    console.log(nextProps);
     const { addCardQuery, addMessage } = this.props;
     const { addCardQuery: nextAddCardQuery } = nextProps;
     if (queryFailed(addCardQuery, nextAddCardQuery)) {
       addMessage(nextAddCardQuery[QUERY_ERROR_KEY]);
     }
+    this.setCards(nextProps);
   }
-  setCards = () => {
-    const { cards } = this.props;
-    const { column } = this.props;
+  setCards = (props) => {
+    const { cards } = props;
+    const { column } = props;
     this.setState({
       curCards: cards.filter(card => column.id === card.columnId)
     });
@@ -41,13 +45,12 @@ class Column extends Component {
   addCard = () => {
     const { socket } = this.context;
     const { text } = this.state;
-    const { column, cards, addCard } = this.props;
+    const { column, addCard } = this.props;
 
     addCard(socket, column.id, text);
     this.setState({
       text: '',
-      hide: false,
-      curCards: cards.filter(card => column.id === card.columnId)
+      hide: false
     });
   };
 
@@ -72,10 +75,10 @@ class Column extends Component {
         hide: true
       });
     } else {
-      const { cards } = this.props;
-      const { column } = this.props;
+      // const { cards } = this.props;
+      // const { column } = this.props;
       this.setState({
-        curCards: cards.filter(card => column.id === card.columnId),
+        // curCards: cards.filter(card => column.id === card.columnId),
         hide: false,
         abc: true
       });
