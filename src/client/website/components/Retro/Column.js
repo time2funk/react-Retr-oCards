@@ -22,6 +22,8 @@ class Column extends Component {
     this.setCards(this.props);
   }
   componentWillReceiveProps(nextProps) {
+    console.log('componentWillReceiveProps', this.props);
+    console.log('nextProps', nextProps);
     const { addCardQuery, addMessage, groupCardsQuery } = this.props;
     const { addCardQuery: nextAddCardQuery } = nextProps;
     const { groupCardsQuery: nextGroupCardsQuery } = nextProps;
@@ -183,7 +185,10 @@ class Column extends Component {
                       <div>GROUP</div>
                       <p>{item.id}</p>
                       {item.cards.map(c => (
-                        <div style={{ textAlign: 'left', outline: '1px solid gray' }}>
+                        <div
+                          key={c.id}
+                          style={{ textAlign: 'left', outline: '1px solid gray' }}
+                        >
                           <p><strong> card-id </strong> {c.id} </p>
                           <p><strong> card-text </strong> {c.text} </p>
                         </div>

@@ -289,7 +289,11 @@ const ACTION_HANDLERS = {
       [CARDS_GROUP_SUCCESS](state, payload) {
         const newState = deepClone(state);
         const { group } = payload;
-        newState[RETRO_GROUPS_KEY].push(group);
+        const newGroup = {
+          id: group._id,
+          cards: group.cards
+        };
+        newState[RETRO_GROUPS_KEY].push(newGroup);
         // newState[RETRO_GROUPS_KEY].unshift(newCard);
         return newState;
       }
