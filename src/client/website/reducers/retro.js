@@ -33,7 +33,13 @@ import {
   CARD_EDIT_SUCCESS,
   CARD_REMOVE_FAILURE,
   CARD_REMOVE_IN_PROGRESS,
-  CARD_REMOVE_SUCCESS
+  CARD_REMOVE_SUCCESS,
+  CARD_MOVE_FAILURE,
+  CARD_MOVE_IN_PROGRESS,
+  CARD_MOVE_SUCCESS,
+  CARDS_GROUP_FAILURE,
+  CARDS_GROUP_IN_PROGRESS,
+  CARDS_GROUP_SUCCESS
 } from '../actions/card';
 import {
   STEPS_CHANGE_IN_PROGRESS,
@@ -56,6 +62,7 @@ export const RETRO_STEP_KEY = 'step';
 export const RETRO_SCRUM_MASTER_ID_KEY = 'scrumMasterId';
 export const RETRO_COLUMNS_KEY = 'columns';
 export const RETRO_CARDS_KEY = 'cards';
+export const RETRO_GROUPS_KEY = 'groups';
 export const RETRO_NEW_QUERY_KEY = 'new';
 export const RETRO_RENAME_QUERY_KEY = 'rename';
 export const RETRO_JOIN_QUERY_KEY = 'join';
@@ -63,7 +70,9 @@ export const COLUMN_ADD_QUERY_KEY = 'addColumn';
 export const COLUMN_REMOVE_QUERY_KEY = 'removeColumn';
 export const COLUMN_EDIT_QUERY_KEY = 'editColumn';
 export const CARD_ADD_QUERY_KEY = 'addCard';
+export const CARDS_GROUP_QUERY_KEY = 'groupCards';
 export const CARD_REMOVE_QUERY_KEY = 'removeCard';
+export const CARD_MOVE_QUERY_KEY = 'moveCard';
 export const CARD_EDIT_QUERY_KEY = 'editCard';
 export const CARD_VOTES_KEY = 'votes';
 export const STEPS_CHANGE_QUERY_KEY = 'stepChange';
@@ -80,6 +89,7 @@ const initialState = {
   [RETRO_USERS_KEY]: {},
   [RETRO_COLUMNS_KEY]: [],
   [RETRO_CARDS_KEY]: [],
+  [RETRO_GROUPS_KEY]: [],
   [RETRO_NEW_QUERY_KEY]: QUERY_DEFAULT(),
   [RETRO_RENAME_QUERY_KEY]: QUERY_DEFAULT(),
   [RETRO_JOIN_QUERY_KEY]: QUERY_DEFAULT(),
@@ -88,7 +98,9 @@ const initialState = {
   [COLUMN_EDIT_QUERY_KEY]: QUERY_DEFAULT(),
   [CARD_ADD_QUERY_KEY]: QUERY_DEFAULT(),
   [CARD_REMOVE_QUERY_KEY]: QUERY_DEFAULT(),
+  [CARD_MOVE_QUERY_KEY]: QUERY_DEFAULT(),
   [CARD_EDIT_QUERY_KEY]: QUERY_DEFAULT(),
+  [CARDS_GROUP_QUERY_KEY]: QUERY_DEFAULT(),
   [STEPS_CHANGE_QUERY_KEY]: QUERY_DEFAULT()
 };
 
@@ -107,7 +119,18 @@ const ACTION_HANDLERS = {
   ], RETRO_JOIN_QUERY_KEY),
   [RETRO_RECEIVED]: (state, { payload }) => {
     const newState = deepClone(state);
-    const { id, name, voteLimit, shareId, step, scrumMaster, users, columns, cards } = payload;
+    const {
+      id,
+      name,
+      voteLimit,
+      shareId,
+      step,
+      scrumMaster,
+      users,
+      columns,
+      cards,
+      groups
+    } = payload;
 
     newState[RETRO_ID_KEY] = id;
     newState[RETRO_NAME_KEY] = name;
@@ -123,6 +146,7 @@ const ACTION_HANDLERS = {
     newState[RETRO_SCRUM_MASTER_ID_KEY] = scrumMaster;
     newState[RETRO_COLUMNS_KEY] = columns;
     newState[RETRO_CARDS_KEY] = cards;
+    newState[RETRO_GROUPS_KEY] = groups;
 
     return newState;
   },
@@ -241,6 +265,37 @@ const ACTION_HANDLERS = {
     },
     CARD_REMOVE_FAILURE
   ], CARD_REMOVE_QUERY_KEY),
+  ...handleQuery([
+    CARD_MOVE_IN_PROGRESS,
+    {
+      [CARD_MOVE_SUCCESS](state, payload) {
+        const newState = deepClone(state);
+        const { columnId, cardId } = payload;
+
+        const cardIndex = newState[RETRO_CARDS_KEY].findIndex(card => card.id === cardId);
+
+        if (cardIndex !== -1) {
+          newState[RETRO_CARDS_KEY][cardIndex].columnId = columnId;
+        }
+
+        return newState;
+      }
+    },
+    CARD_MOVE_FAILURE
+  ], CARD_MOVE_QUERY_KEY),
+  ...handleQuery([
+    CARDS_GROUP_IN_PROGRESS,
+    {
+      [CARDS_GROUP_SUCCESS](state, payload) {
+        const newState = deepClone(state);
+        const { group } = payload;
+        newState[RETRO_GROUPS_KEY].push(group);
+        // newState[RETRO_GROUPS_KEY].unshift(newCard);
+        return newState;
+      }
+    },
+    CARDS_GROUP_FAILURE
+  ], CARDS_GROUP_QUERY_KEY),
   ...handleQuery([
     CARD_EDIT_IN_PROGRESS,
     {

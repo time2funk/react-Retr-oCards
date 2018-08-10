@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import Retro from '../../models/retro.model';
 import User from '../../models/user.model';
-import { ACTION_CARD_ADD, ACTION_CARD_EDIT, ACTION_CARD_REMOVE } from './card.actions';
+import { ACTION_CARD_ADD, ACTION_CARD_EDIT, ACTION_CARD_REMOVE, ACTION_CARD_MOVE, ACTION_CARDS_GROUP } from './card.actions';
 import { getId, getIds } from '../../utils';
 
 export default {
@@ -103,6 +103,130 @@ export default {
     return {
       broadcast: {
         id
+      }
+    };
+  },
+  [ACTION_CARD_MOVE]: async (params, state) => {
+    const { retroId, userId } = state;
+    const { columnId, cardId } = params;
+    const retro = await Retro.findById(retroId);
+    if (!retro.participates(userId)) {
+      throw new Error('You are not participating in a retrospective.');
+    }
+
+    const column = retro.columns.find(c => getId(c) === columnId);
+    if (!column) throw new Error('Column incorrect or not selected.');
+
+    const updated = await Retro.findOneAndUpdate({
+      _id: retroId,
+      cards: { $elemMatch: { _id: cardId, authors: userId } }
+    }, {
+      $set: { 
+        'cards.$.columnId' : columnId
+      }
+    }).exec();
+
+    if (!updated) {
+      throw new Error('Card not moved because it doesn\'t exist or you don\'t have sufficient privileges.');
+    }
+
+    return {
+      broadcast: {
+        columnId,
+        cardId
+      }
+    };
+  },
+  [ACTION_CARDS_GROUP]: async (params, state) => {
+    const { retroId, userId } = state;
+    const { source, target } = params;
+
+    const newGroup = async () => {
+      let group = {
+        _id: new mongoose.Types.ObjectId(),
+        cards: []
+      }
+      let newGoup = await Retro.findOneAndUpdate({
+        _id: retroId
+      }, {
+        $push: {
+          groups: { 
+            $each: [group],
+            $position: 0
+          }
+        }
+      },
+      { new: true }).exec();
+      console.log('newGoup', newGoup);
+      return group;
+    }
+
+    const removeGroup = async (A) => {
+      const removeResult = await Retro.findOneAndUpdate({
+        _id: retroId,
+        groups: { $elemMatch: { _id: A.id } }
+      }, {
+        $pull: {
+          groups: {
+            _id: A.id
+          }
+        }
+      },
+      { new: true }).exec();
+      console.log('removeResult', removeResult);
+      return removeResult;
+    }
+    const addCardToGroup = async (Card, Group) => {
+      const retro = await Retro.findById(retroId);
+      if (!retro.participates(userId)) {
+        throw new Error('You are not participating in a retrospective.');
+      }
+      const groupIndex = retro.groups.findIndex(g => g['_id'].toString === Group.toString);
+      const group = retro.groups[groupIndex];
+      group.cards.push(mongoose.Types.ObjectId(Card));
+      const updatedRetro = await retro.save();
+      if (!updatedRetro) {
+        throw new Error('Card not updated because it doesn\'t exist or you don\'t have sufficient privileges.');
+      }
+    }
+
+    let group;
+
+    if (target.type === 'card') {
+      if (source.type === 'card') {
+        group = await newGroup();
+        await addCardToGroup(target.id, group._id);
+        await addCardToGroup(source.id, group._id);
+        group.cards.push(source.id, target.id);
+      } else if (source.type === 'group') {
+        group = source;
+        await addCardToGroup(target.id, source.id);
+        group.cards.push(target.id);
+      }
+    } else if (target.type === 'group'){
+      if (source.type === 'card') {
+        group = target;
+        await addCardToGroup(source.id, target.id);
+        group.cards.push(source.id);
+      } else if (source.type === 'group') {
+        group = source;
+        for (let i = 0; i < source.array.length; i++){
+          await addCardToGroup(source.array[i], target.id);
+          group.cards.push(source.array[i].id);
+        }
+        await removeGroup(source.id);
+      }
+    }
+
+    // if (!updated) {
+    //   throw new Error('Card not moved because it doesn\'t exist or you don\'t have sufficient privileges.');
+    // }
+
+    return {
+      broadcast: {
+        source,
+        target,
+        group
       }
     };
   }
