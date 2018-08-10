@@ -19,27 +19,65 @@ class Column extends Component {
   }
 
   componentWillMount() {
-    console.log('componentWillMount');
     this.setCards(this.props);
   }
   componentWillReceiveProps(nextProps) {
-    console.log('componentWillReceiveProps');
-    console.log(this.props);
-    console.log('nextProps');
-    console.log(nextProps);
-    const { addCardQuery, addMessage } = this.props;
+    const { addCardQuery, addMessage, groupCardsQuery } = this.props;
     const { addCardQuery: nextAddCardQuery } = nextProps;
+    const { groupCardsQuery: nextGroupCardsQuery } = nextProps;
     if (queryFailed(addCardQuery, nextAddCardQuery)) {
       addMessage(nextAddCardQuery[QUERY_ERROR_KEY]);
     }
+    if (queryFailed(groupCardsQuery, nextGroupCardsQuery)) {
+      addMessage(nextGroupCardsQuery[QUERY_ERROR_KEY]);
+    }
     this.setCards(nextProps);
   }
+
   setCards = (props) => {
     const { cards } = props;
     const { column } = props;
-    this.setState({
-      curCards: cards.filter(card => column.id === card.columnId)
-    });
+    const { groups } = props;
+
+    // create Cards-Arr from this Column
+    if (groups.length !== 0) {
+      let newCards = cards.filter(card => column.id === card.columnId);
+      const curGroups = [];
+      // lets loop through Groups props
+      for (let i = 0; i < groups.length; i++) {
+        const tmpArr = {
+          id: groups[i].id,
+          cards: [],
+          votes: [],
+          type: 'group'
+        };
+        for (let j = 0; j < groups[i].cards.length; j++) {
+          const index = newCards.findIndex(c => (c !== undefined && c.id === groups[i].cards[j]));
+
+          if (index !== -1) {
+            // push card in to the temp array of Group objects
+            tmpArr.cards.push(newCards[index]);
+            // push card Votes
+            tmpArr.votes = tmpArr.votes.concat(newCards[index].votes);
+            // delete the card from the Cards-Arr
+            delete newCards[index];
+          }
+        }
+        if (tmpArr.cards.length !== 0) {
+          curGroups.push(tmpArr);
+        }
+      }
+      // remove undefined items
+      newCards = newCards.concat(curGroups);
+      newCards = newCards.filter(e => e !== undefined);
+      this.setState({
+        curCards: newCards
+      });
+    } else {
+      this.setState({
+        curCards: cards.filter(card => column.id === card.columnId)
+      });
+    }
   }
 
   addCard = () => {
@@ -75,10 +113,8 @@ class Column extends Component {
         hide: true
       });
     } else {
-      // const { cards } = this.props;
-      // const { column } = this.props;
+      this.setCards(this.props);
       this.setState({
-        // curCards: cards.filter(card => column.id === card.columnId),
         hide: false,
         abc: true
       });
@@ -139,36 +175,51 @@ class Column extends Component {
               style={{ height: '100%' }}
             >
 
-              {this.state.curCards.map((card, index) => (
-                <Draggable
-                  draggableId={card.id}
-                  index={index}
-                  key={card.id}
-                >
-                  {(provided, snapshot) => (
-                    <div
-                      className="p-DraggableItem"
-                    >
-                      <div
-                        className={snapshot.isDragging ? 'p-DraggingItem' : ''}
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        onMouseEnter={() => cardEnterEvent(card.id)}
-                        onMouseLeave={() => cardLeaveEvent}
-                      >
-
-                        <Card
-                          card={card}
-                          key={card.id}
-                        />
-
-                      </div>
-                      {provided.placeholder}
+              {this.state.curCards.map((item, index) => (
+                <div key={item.id}>
+                  {(item.type && item.type === 'group') ? (
+                    <div>
+                      <hr />
+                      <div>GROUP</div>
+                      <p>{item.id}</p>
+                      {item.cards.map(c => (
+                        <div style={{ textAlign: 'left', outline: '1px solid gray' }}>
+                          <p><strong> card-id </strong> {c.id} </p>
+                          <p><strong> card-text </strong> {c.text} </p>
+                        </div>
+                      ))}
+                      <hr />
                     </div>
-                  )}
-                </Draggable>
+                  ) : (
+                    <Draggable
+                      draggableId={item.id}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          className="p-DraggableItem"
+                        >
+                          <div
+                            className={snapshot.isDragging ? 'p-DraggingItem' : ''}
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            onMouseEnter={() => cardEnterEvent(item.id)}
+                            onMouseLeave={() => cardLeaveEvent}
+                          >
 
+                            <Card
+                              card={item}
+                              key={item.id}
+                            />
+
+                          </div>
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Draggable>
+                  )}
+                </div>
               ))}
 
             </div>
@@ -207,6 +258,7 @@ Column.propTypes = {
   cardEnterEvent: PropTypes.func.isRequired,
   cardLeaveEvent: PropTypes.func.isRequired,
   // Queries
+  groupCardsQuery: PropTypes.shape(QueryShape).isRequired,
   addCardQuery: PropTypes.shape(QueryShape).isRequired,
   // Styles
   classes: PropTypes.shape({

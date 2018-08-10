@@ -144,8 +144,7 @@ export default {
     const newGroup = async () => {
       let group = {
         _id: new mongoose.Types.ObjectId(),
-        cards: [],
-        new: true
+        cards: []
       }
       let newGoup = await Retro.findOneAndUpdate({
         _id: retroId
@@ -191,21 +190,29 @@ export default {
       }
     }
 
+    let group;
+
     if (target.type === 'card') {
       if (source.type === 'card') {
-        let group = await newGroup();
+        group = await newGroup();
         await addCardToGroup(target.id, group._id);
         await addCardToGroup(source.id, group._id);
+        group.cards.push(source.id, target.id);
       } else if (source.type === 'group') {
+        group = source;
         await addCardToGroup(target.id, source.id);
+        group.cards.push(target.id);
       }
     } else if (target.type === 'group'){
       if (source.type === 'card') {
+        group = target;
         await addCardToGroup(source.id, target.id);
-
+        group.cards.push(source.id);
       } else if (source.type === 'group') {
+        group = source;
         for (let i = 0; i < source.array.length; i++){
           await addCardToGroup(source.array[i], target.id);
+          group.cards.push(source.array[i].id);
         }
         await removeGroup(source.id);
       }
@@ -218,7 +225,8 @@ export default {
     return {
       broadcast: {
         source,
-        target
+        target,
+        group
       }
     };
   }

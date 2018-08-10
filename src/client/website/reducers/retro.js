@@ -70,11 +70,11 @@ export const COLUMN_ADD_QUERY_KEY = 'addColumn';
 export const COLUMN_REMOVE_QUERY_KEY = 'removeColumn';
 export const COLUMN_EDIT_QUERY_KEY = 'editColumn';
 export const CARD_ADD_QUERY_KEY = 'addCard';
+export const CARDS_GROUP_QUERY_KEY = 'groupCards';
 export const CARD_REMOVE_QUERY_KEY = 'removeCard';
 export const CARD_MOVE_QUERY_KEY = 'moveCard';
 export const CARD_EDIT_QUERY_KEY = 'editCard';
 export const CARD_VOTES_KEY = 'votes';
-export const CARDS_GROUP_QUERY_KEY = 'moveCard';
 export const STEPS_CHANGE_QUERY_KEY = 'stepChange';
 
 // ------------------------------------
@@ -288,15 +288,8 @@ const ACTION_HANDLERS = {
     {
       [CARDS_GROUP_SUCCESS](state, payload) {
         const newState = deepClone(state);
-        const { source, target } = payload;
-        console.log({ source, target });
-
-        newState[RETRO_GROUPS_KEY]
-          .filter(group => group.new)
-          .map((group) => {
-            const oldGroup = group;
-            return delete oldGroup.new && oldGroup;
-          });
+        const { group } = payload;
+        newState[RETRO_GROUPS_KEY].push(group);
         // newState[RETRO_GROUPS_KEY].unshift(newCard);
         return newState;
       }
